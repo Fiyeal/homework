@@ -3,13 +3,16 @@
 #include <fstream>
 #include <set>
 #include <string>
+#include <cctype>
+#include <vector>
+#include <map>
 
 const char *grammarPath = "./grammar.txt";
 const char *chomskyPath = "./Chomsky.txt";
 const char *greibachPath = "./Greibach.txt";
 
 std::set<char> V, T;
-std::set<std::string> P;
+std::map<char, std::vector<std::string>> P;
 char start = 'S';
 
 /**
@@ -20,9 +23,36 @@ char start = 'S';
 void to_chomsky(std::fstream &fin, std::fstream &fout)
 {
     std::string s;
-    while (std::getline(fin, s)) {
-        fout << s << std::endl;
+    while (fin >> s) {
+
+        for (int i = 0; i < s.size(); ++i) { // 构造非终结符集V和终结符集T
+            if (i != 1 || i != 2) {
+                if (std::isupper(s[i]))
+                    V.insert(s[i]);
+                else
+                    T.insert(s[i]);
+
+            }
+        }
+
+        // 拆分，例如'S->aABC|a' 变为 'S aABC a' ，存储
+        P.insert({s[0], std::vector<std::string>()});
+        int preind = 3, ind = 3;
+        std::cout << s << std::endl;
+        while ((ind = s.find_first_of("|", ind, s.size() - ind)) != std::string::npos) {
+            P[s[0]].push_back(std::string(s, preind, ind - preind));
+            preind = ++ind;
+        }
+        P[s[0]].push_back(std::string(s, preind, s.size() - preind));
+        for (auto val : P[s[0]]) {
+            std::cout << val << " ";
+        }
+        std::cout << std::endl << std::endl;
     }
+
+    // 消除无用符号
+    
+
     return;
 }
 
