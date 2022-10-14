@@ -94,6 +94,22 @@ void remove_single_production(std::vector<std::string> &svec, std::set<char> &ch
 }
 
 
+void remove_empty_production()
+{
+    std::set<char> tmp;
+    for (auto &item : P) {
+        for (auto it = item.second.begin(); it != item.second.end(); ++it) {
+            if (*it == "#") {
+                tmp.insert(item.first);
+                item.second.erase(it);
+                break;
+            }
+        }
+    }
+    
+
+}
+
 
 /**
  *  @brief  translate the common grammar to chomsky normal forms.
@@ -141,7 +157,7 @@ void to_chomsky(std::fstream &fin, std::fstream &fout)
     }
 
     // 消除#产生式
-
+    remove_empty_production();
 
     return;
 }
