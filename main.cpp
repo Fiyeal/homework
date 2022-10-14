@@ -22,9 +22,9 @@ void print(T a)
 
 void print_map(std::map<char, std::vector<std::string>> a)
 {
-    for (auto it : a) {
-        std::cout << it.first << "->";
-        print(it.second);
+    for (auto item : a) {
+        std::cout << item.first << "->";
+        print(item.second);
     }
 }
 
@@ -36,9 +36,64 @@ const char *grammarPath = "./grammar.txt";
 const char *chomskyPath = "./Chomsky.txt";
 const char *greibachPath = "./Greibach.txt";
 
-std::set<char> V, T;
-std::map<char, std::vector<std::string>> P;
-char start = 'S';
+std::set<char> V, T; // 分别为非终结符和终结符
+std::map<char, std::vector<std::string>> P; // 产生式
+char START = 'S'; // 开始符号
+
+
+// 消除无用符号, 从S遍历非终结符，遍历到的存入checked，最终与V做差集，去除差集里的产生式
+void remove_useless_symbols()
+{
+    std::set<char> checked, unchecked{START};
+    while (!unchecked.empty()) {
+        char check = 0;
+        if (unchecked.count(START) == 1) {
+            check = START;
+        }
+        else {
+            auto it = unchecked.begin();
+            check = *it;
+        }
+        for (const auto &s : P[check]) {
+            for (auto ch : s) {
+                if (std::isupper(ch) && checked.count(ch) == 0) {
+                    unchecked.insert(ch);
+                }
+            }
+        }
+        checked.insert(check);
+        auto it = unchecked.find(check);
+        unchecked.erase(it);
+    }
+    std::vector<char> tmp;
+    std::set_difference(V.begin(), V.end(), checked.begin(), checked.end(), std::back_inserter(tmp));
+    for (auto ch : tmp) {
+        auto it = P.find(ch);
+        P.erase(it);
+    }
+    return;
+}
+
+// 消除单一产生式，递归消除替换，checked记录已消除的产生式左部
+void remove_single_production(std::vector<std::string> &svec, std::set<char> &checked, char ch) {
+    std::vector<std::string> tmp;
+    for (auto s : svec) {
+        if (s.size() == 1 && std::isupper(s[0])) {
+            remove_single_production(P[s[0]], checked, s[0]);
+            for (auto s1 : P[s[0]]) {
+                tmp.push_back(s1);
+            }
+        }
+        else {
+            tmp.push_back(s);
+        }
+    }
+    svec = tmp;
+    checked.insert(ch);
+    return;
+}
+
+
 
 /**
  *  @brief  translate the common grammar to chomsky normal forms.
@@ -47,6 +102,7 @@ char start = 'S';
  */
 void to_chomsky(std::fstream &fin, std::fstream &fout)
 {
+    // 从文件读取文法，解析存储
     std::string line;
     while (fin >> line) {
 
@@ -75,36 +131,16 @@ void to_chomsky(std::fstream &fin, std::fstream &fout)
     }
 
     // 消除无用符号
-    std::set<char> checked, unchecked{'S'};
-    while (!unchecked.empty()) {
-        char check = 0;
-        if (unchecked.count('S') == 1) {
-            check = 'S';
-        }
-        else {
-            auto it = unchecked.begin();
-            check = *it;
-        }
-        for (auto s : P[check]) {
-            for (auto ch : s) {
-                if (std::isupper(ch) && checked.count(ch) == 0) {
-                    unchecked.insert(ch);
-                }
-            }
-        }
-        checked.insert(check);
-        auto it = unchecked.find(check);
-        unchecked.erase(it);
-    }
-    std::vector<char> tmp;
-    std::set_difference(V.begin(), V.end(), checked.begin(), checked.end(), std::back_inserter(tmp));
-    for (auto ch : tmp) {
-        auto it = P.find(ch);
-        P.erase(it);
+    remove_useless_symbols();    
+    
+    // 消除单一产生式
+    std::set<char> checked;
+    for (auto &item : P) {
+        if (checked.count(item.first) == 0)
+            remove_single_production(item.second, checked, item.first);
     }
 
-    // 消除单一产生式
-    
+    // 消除#产生式
 
 
     return;

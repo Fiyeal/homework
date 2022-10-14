@@ -1,5 +1,5 @@
 S->aABC|a
 A->aA|a|#
 B->bcB|bc|C|#
-D->a|aD|aDb
 C->cC|cb
+D->a|aD|aDb
