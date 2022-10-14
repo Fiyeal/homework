@@ -7,6 +7,22 @@
 #include <vector>
 #include <map>
 
+// DEBUG FUNCTION
+template<class T>
+void print(T a) 
+{
+    for (auto ch : a) {
+        std::cout << ch << " ";
+    }
+    std::cout << std::endl;
+    return;
+}
+
+
+///////////////////////////////////////////
+
+
+
 const char *grammarPath = "./grammar.txt";
 const char *chomskyPath = "./Chomsky.txt";
 const char *greibachPath = "./Greibach.txt";
@@ -26,12 +42,11 @@ void to_chomsky(std::fstream &fin, std::fstream &fout)
     while (fin >> s) {
 
         for (int i = 0; i < s.size(); ++i) { // 构造非终结符集V和终结符集T
-            if (i != 1 || i != 2) {
+            if (i != 1 && i != 2 && s[i] != '|') {
                 if (std::isupper(s[i]))
                     V.insert(s[i]);
                 else
                     T.insert(s[i]);
-
             }
         }
 
