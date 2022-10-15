@@ -20,6 +20,7 @@ void print(T a)
     return;
 }
 
+
 void print_map(std::map<char, std::vector<std::string>> a)
 {
     for (auto item : a) {
