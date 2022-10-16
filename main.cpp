@@ -101,11 +101,13 @@ void remove_empty_production()
     std::set<char> tmp;
     // 找到空产生式对应的非终结符
     for (auto &item : P) {
-        for (auto it = item.second.begin(); it != item.second.end(); ++it) {
-            if (*it == "#") {
-                tmp.insert(item.first);
-                item.second.erase(it);
-                break;
+        if (item.first != START) {
+            for (auto it = item.second.begin(); it != item.second.end(); ++it) {
+                if (*it == "#") {
+                    tmp.insert(item.first);
+                    item.second.erase(it);
+                    break;
+                }
             }
         }
     }
@@ -140,6 +142,51 @@ void remove_empty_production()
     }
     return;
 }
+
+
+// 构造G1
+void construct_G1()
+{
+    char candidate = 'A'; // 候选非终结符
+    std::map<char, char> rextraP; // reverse extra P
+    for (auto &item : P) {
+        std::vector<std::string> tmp;
+        for (const auto &s : item.second) {
+            if (s.size() == 1 && T.count(s[0]) == 1)
+                tmp.push_back(s);
+            else if (s.size() > 1) {
+                auto ss(s);
+                for (auto &ch : ss) {
+                    if (T.count(ch) == 1) {
+                        if (rextraP.count(ch) == 1)
+                            ch = rextraP[ch];
+                        else {
+                            while (V.count(candidate) == 1) {
+                                ++candidate;
+                                assert(candidate <= 'Z');
+                            }
+                            rextraP.insert({ch, candidate});
+                            V.insert(candidate);
+                            ch = candidate;
+                        }
+                    }
+                }
+                tmp.push_back(ss);
+            }
+            item.second = tmp;
+        }
+    }
+    for (auto item : rextraP) {
+        P.insert({item.second, {std::string(1, item.first)}});
+    }
+    return;
+}
+
+void construct_GC()
+{
+
+}
+
 
 
 /**
@@ -190,6 +237,8 @@ void to_chomsky(std::fstream &fin, std::fstream &fout)
     // 消除#产生式
     remove_empty_production();
 
+    construct_G1();
+
     print_map(P);
 
     return;
@@ -211,7 +260,12 @@ int main() {
     if (!grammar.is_open() || !chomsky.is_open() || !greibach.is_open())
         std::cout << "Error when it trys to open files!!!" << std::endl;
     else {
+        auto P_backup = P;
+        auto V_backup = V;
         to_chomsky(grammar, chomsky);
+
+        P = P_backup;
+        V = V_backup;
         chomsky.seekp(0); //move file pointer to the begin of the file
         // to_greibach(chomsky, greibach);
 
