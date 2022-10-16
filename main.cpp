@@ -238,42 +238,13 @@ void construct_GC(char &candidate)
 
 /**
  *  @brief  translate the common grammar to chomsky normal forms.
- *  @param fin the file inlcuding the grammar
  *  @param fout the file to save chomsky normal forms
  */
-void to_chomsky(std::fstream &fin, std::fstream &fout)
+void to_chomsky(std::fstream &fout)
 {
-    // 从文件读取文法，解析存储
-    std::string line;
-    while (fin >> line) {
+    // 消除#产生式
+    remove_empty_production();
 
-        for (int i = 0; i < line.size(); ++i) { // 构造非终结符集V和终结符集T
-            if (i != 1 && i != 2 && line[i] != '|') {
-                if (std::isupper(line[i]))
-                    V.insert(line[i]);
-                else
-                    T.insert(line[i]);
-            }
-        }
-
-        // 拆分，例如'S->aABC|a' 变为 'S aABC a' ，存储
-        P.insert({line[0], std::vector<std::string>()});
-        int preind = 3, ind = 3;
-        std::cout << line << std::endl;
-        while ((ind = line.find_first_of("|", ind, line.size() - ind)) != std::string::npos) {
-            P[line[0]].push_back(std::string(line, preind, ind - preind));
-            preind = ++ind;
-        }
-        P[line[0]].push_back(std::string(line, preind, line.size() - preind));
-        for (auto val : P[line[0]]) {
-            std::cout << val << " ";
-        }
-        std::cout << std::endl << std::endl;
-    }
-
-    // 消除无用符号
-    remove_useless_symbols();    
-    
     // 消除单一产生式
     std::set<char> checked;
     for (auto &item : P) {
@@ -281,8 +252,8 @@ void to_chomsky(std::fstream &fin, std::fstream &fout)
             remove_single_production(item.second, checked, item.first);
     }
 
-    // 消除#产生式
-    remove_empty_production();
+    // 消除无用符号
+    remove_useless_symbols();
 
     // 构造G1
     char candidate = 'A'; // 候选非终结符
@@ -304,11 +275,18 @@ void to_chomsky(std::fstream &fin, std::fstream &fout)
     return;
 }
 
-// void to_greibach(std::fstream &fin, std::fstream &fout)
-// {
+void remove_left_recursion()
+{
+    for (auto &item : P) {
+        ;
+    }
+}
 
-//     return;
-// }
+void to_greibach(std::fstream &fout)
+{
+
+    return;
+}
 
 
 int main() {
@@ -320,14 +298,41 @@ int main() {
     if (!grammar.is_open() || !chomsky.is_open() || !greibach.is_open())
         std::cout << "Error when it trys to open files!!!" << std::endl;
     else {
+        // 从文件读取文法，解析存储
+        std::string line;
+        while (grammar >> line) {
+
+            for (int i = 0; i < line.size(); ++i) { // 构造非终结符集V和终结符集T
+                if (i != 1 && i != 2 && line[i] != '|') {
+                    if (std::isupper(line[i]))
+                        V.insert(line[i]);
+                    else
+                        T.insert(line[i]);
+                }
+            }
+
+            // 拆分，例如'S->aABC|a' 变为 'S aABC a' ，存储
+            P.insert({line[0], std::vector<std::string>()});
+            int preind = 3, ind = 3;
+            // std::cout << line << std::endl;
+            while ((ind = line.find_first_of("|", ind, line.size() - ind)) != std::string::npos) {
+                P[line[0]].push_back(std::string(line, preind, ind - preind));
+                preind = ++ind;
+            }
+            P[line[0]].push_back(std::string(line, preind, line.size() - preind));
+            // for (auto val : P[line[0]]) {
+            //     std::cout << val << " ";
+            // }
+            // std::cout << std::endl << std::endl;
+        }
+
         auto P_backup = P;
         auto V_backup = V;
-        to_chomsky(grammar, chomsky);
+        to_chomsky(chomsky);
 
         P = P_backup;
         V = V_backup;
-        chomsky.seekp(0); //move file pointer to the begin of the file
-        // to_greibach(chomsky, greibach);
+        to_greibach(greibach);
 
     }
     return 0;
