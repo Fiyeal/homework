@@ -145,9 +145,8 @@ void remove_empty_production()
 
 
 // 构造G1
-void construct_G1()
+void construct_G1(char &candidate)
 {
-    char candidate = 'A'; // 候选非终结符
     std::map<char, char> rextraP; // reverse extra P
     for (auto &item : P) {
         std::vector<std::string> tmp;
@@ -176,15 +175,63 @@ void construct_G1()
             item.second = tmp;
         }
     }
-    for (auto item : rextraP) {
+    for (const auto &item : rextraP) {
         P.insert({item.second, {std::string(1, item.first)}});
     }
     return;
 }
 
-void construct_GC()
+// 构造GC
+void construct_GC(char &candidate)
 {
-
+    std::map<std::string, char> rextraP;
+    for (auto &item : P) {
+        std::vector<std::string> tmp;
+        for (const auto &s : item.second) {
+            if (s.size() <= 2) {
+                tmp.push_back(s);
+            }
+            else {
+                bool firstFlag = true, breakFlag = false;
+                char preChoseV = 0;
+                auto ss(s);
+                while (ss.size() > 2) {
+                    char ch = ss[0];
+                    char newV = 0;
+                    ss.erase(0, 1);
+                    if (rextraP.count(ss) == 1) {
+                        newV = rextraP[ss];
+                        breakFlag = true;
+                    }
+                    else {
+                        while (V.count(candidate) == 1) {
+                            ++candidate;
+                            assert(candidate <= 'Z');
+                        }
+                        newV = candidate;
+                    }
+                    if (firstFlag) {
+                        tmp.push_back(std::string(1, ch) + newV);
+                        firstFlag = false;
+                    }
+                    else
+                        rextraP.insert({std::string(1, ch) + newV, preChoseV});
+                    if (breakFlag) {
+                        break;
+                    }
+                    V.insert(newV);
+                    preChoseV = newV;
+                }
+                if (!breakFlag)
+                    rextraP.insert({ss, preChoseV});
+            }
+        }
+        item.second = tmp;
+    }
+    for (const auto &item : rextraP) {
+        P.insert({item.second, {item.first}});
+    }
+    return;
 }
 
 
@@ -237,9 +284,16 @@ void to_chomsky(std::fstream &fin, std::fstream &fout)
     // 消除#产生式
     remove_empty_production();
 
-    construct_G1();
+    // 构造G1
+    char candidate = 'A'; // 候选非终结符
+    construct_G1(candidate);
+
+    // 构造GC
+    construct_GC(candidate);
 
     print_map(P);
+    // print(V);
+    // print(T);
 
     return;
 }
