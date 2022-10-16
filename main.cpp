@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <cmath>
 
 // DEBUG FUNCTION
 template<class T>
@@ -94,10 +95,11 @@ void remove_single_production(std::vector<std::string> &svec, std::set<char> &ch
     return;
 }
 
-
+// 移除空产生式
 void remove_empty_production()
 {
     std::set<char> tmp;
+    // 找到空产生式对应的非终结符
     for (auto &item : P) {
         for (auto it = item.second.begin(); it != item.second.end(); ++it) {
             if (*it == "#") {
@@ -108,7 +110,35 @@ void remove_empty_production()
         }
     }
     
-
+    for (auto &item : P) {
+        std::vector<std::string> res;
+        for (const auto &s : item.second) {
+            res.push_back(s);
+            std::vector<int> ind;
+            for (int i = 0; i < s.size(); ++i) {
+                if (tmp.count(s[i]) == 1) {
+                    ind.push_back(i);
+                }
+            }
+            if (ind.empty())
+                continue;
+            
+            // 根据目标非终结符个数n，构造n位，遍历2^n种可能，某位为0时，erase对应ind的符号
+            for (int i = 0; i < (int)exp2(ind.size()); ++i) {
+                std::string ss(s);
+                for (int j = 0; j < ind.size(); ++j) {
+                    int flag = (i >> j) & 1;
+                    if (flag == 0)
+                        ss.erase(ind[ind.size() - j - 1], 1);
+                }
+                if (std::find(item.second.begin(), item.second.end(), ss) == item.second.end()) {
+                    res.push_back(ss);
+                }
+            }
+        }
+        item.second = res;
+    }
+    return;
 }
 
 
@@ -159,6 +189,8 @@ void to_chomsky(std::fstream &fin, std::fstream &fout)
 
     // 消除#产生式
     remove_empty_production();
+
+    print_map(P);
 
     return;
 }
