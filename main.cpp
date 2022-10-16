@@ -291,10 +291,16 @@ void to_chomsky(std::fstream &fin, std::fstream &fout)
     // 构造GC
     construct_GC(candidate);
 
-    print_map(P);
-    // print(V);
-    // print(T);
-
+    // 输出到文件
+    for (const auto &item : P) {
+        fout << item.first << "->";
+        for (int i = 0; i < item.second.size(); ++i) {
+            fout << item.second[i];
+            if (i != item.second.size() - 1)
+                fout << "|";
+        }
+        fout << std::endl;
+    }
     return;
 }
 
