@@ -383,7 +383,7 @@ void remove_left_recursion()
 
         // 回代其他产生式，消除间接左递归
         char ch = firstItem.first;
-        for (int i = 0; i < tmp.size() - 1; ++i) {
+        for (int i = 0; i < tmpP.size() - 1; ++i) {
             for (auto &item : tmpP) {
                 if (item.first != firstItem.first) {
                     tmp.clear();
@@ -402,7 +402,6 @@ void remove_left_recursion()
                     item.second = tmp;
                     if (flag) {
                         ch = item.first;
-                        break;
                     }
                 }
             }
