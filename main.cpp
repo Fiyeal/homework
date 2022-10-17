@@ -9,6 +9,7 @@
 #include <map>
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 
 // DEBUG FUNCTION
 template<class T>
@@ -276,35 +277,163 @@ void to_chomsky(std::fstream &fout)
 }
 
 
+
+void search(std::vector<char> &res, char ch, bool &breakFlag)
+{
+    for (const auto &s : P[ch]) {
+        if (V.count(s[0]) == 1) {
+            auto it = std::find(res.begin(), res.end(), s[0]);
+            if (it == res.end()) {
+                res.push_back(s[0]);
+                search(res, s[0], breakFlag);
+                if (breakFlag)
+                    return;
+            }
+            else {
+                res.push_back(s[0]);
+                breakFlag = true;
+                return;
+            }
+        }
+    }
+    res.pop_back();
+    return;
+}
+
+
+
+
+
 // 消除左递归产生式
 void remove_left_recursion()
 {
+    char start = START;
+    std::set<char> checked;
     while (true) {
-        auto it = P.begin();
-        decltype(V) cycle;
+        std::vector<char> haveRing{start};
         bool breakFlag = false;
-        while (it != P.end()) {
-            auto &item = *it;
-            for (const auto &s : item.second) {
-                char ch = item.first;
-                while (T.count(s[0]) != 1) {
-                    if (cycle.empty())
-                        cycle.insert(ch);
-                    cycle.insert()
+        search(haveRing, start, breakFlag);  // 查找start开头的可达路线上是否有环
+
+        if (breakFlag == false) { // 找不到的情况
+            checked.insert(start);
+            std::vector<char> tmp;
+            std::set_difference(V.begin(), V.end(), checked.begin(), checked.end(), std::back_inserter(tmp));
+            if (tmp.empty())
+                break;
+            start = *(tmp.begin()); // 找其他非终结符开头的情况
+            continue;
+        }
+
+        // print(haveRing);
+        // 找到的情况，把环上相关产生式放入tmpP
+        decltype(P) tmpP;
+        assert(haveRing.size() > 1);
+        for (int i = haveRing.size() - 2; i >= 0; --i) {
+            tmpP.insert({haveRing[i + 1], P[haveRing[i + 1]]});
+            if (haveRing[i] == haveRing[haveRing.size() - 1])
+                break;
+        }
+        // print_map(tmpP);
+        // 代入
+        auto tail = tmpP.end();
+        std::advance(tail, -1);
+        auto &firstItem = *tail;
+        for (int i = 0; i < tmpP.size() - 1; ++i) {
+            std::vector<std::string> tmp;
+            for (const auto &s : firstItem.second) {
+                if (s[0] != firstItem.first && tmpP.count(s[0]) == 1) {
+                    for (const auto &ss : tmpP[s[0]]) {
+                        auto tmps = s;
+                        tmps.replace(tmps.begin(), tmps.begin() + 1, ss.begin(), ss.end());
+                        tmp.push_back(tmps);
+                    }
+                }
+                else
+                    tmp.push_back(s);
+            }
+            firstItem.second = tmp;
+        }
+
+        // 消除直接左递归
+        std::vector<std::string> a, b;
+        for (const auto &s : firstItem.second) {
+            if (s[0] == firstItem.first)
+                a.push_back(std::string(s.begin() + 1, s.end()));
+            else
+                b.push_back(s);
+        }
+        std::vector<std::string> tmp(b);
+        char newV = 'A';
+        while (V.count(newV) == 1) {
+            ++newV;
+            assert(newV <= 'Z');
+        }
+        for (const auto &s : b) {
+            tmp.push_back(s + newV);
+        }
+        firstItem.second = tmp;
+        tmp = a;
+        for (const auto &s : a) {
+            tmp.push_back(s + newV);
+        }
+        V.insert(newV);
+        tmpP[newV] = tmp;
+
+        print_map(tmpP);
+
+        // 回代其他产生式，消除间接左递归
+        char ch = firstItem.first;
+        for (int i = 0; i < tmp.size() - 1; ++i) {
+            for (auto &item : tmpP) {
+                if (item.first != firstItem.first) {
+                    tmp.clear();
+                    bool flag = false;
+                    for (const auto &s : item.second) {
+                        if (s[0] == ch) {
+                            for (const auto &ss : tmpP[ch]) {
+                                tmp.push_back(ss + std::string(s.begin() + 1, s.end()));
+                            }
+                            flag = true;
+                        }
+                        else {
+                            tmp.push_back(s);
+                        }
+                    }
+                    item.second = tmp;
+                    if (flag) {
+                        ch = item.first;
+                        break;
+                    }
                 }
             }
-            if (breakFlag)
-                break;
-            ++it;
         }
-        if (it == P.end())
-            break;
+        for (const auto &item : tmpP) {
+            P[item.first] = item.second;
+        }
     }
+    print_map(P);
     return;
 }
 
 void to_greibach(std::fstream &fout)
 {
+    // 消除#产生式
+    remove_empty_production();
+
+    // 消除单一产生式
+    std::set<char> checked;
+    for (auto &item : P) {
+        if (checked.count(item.first) == 0)
+            remove_single_production(item.second, checked, item.first);
+    }
+
+    // 消除无用符号
+    remove_useless_symbols();
+
+    print_map(P);
+    std::cout << std::endl;
+    
+    remove_left_recursion();
 
     return;
 }
@@ -347,12 +476,12 @@ int main() {
             // std::cout << std::endl << std::endl;
         }
 
-        auto P_backup = P;
-        auto V_backup = V;
-        to_chomsky(chomsky);
+        // auto P_backup = P;
+        // auto V_backup = V;
+        // to_chomsky(chomsky);
 
-        P = P_backup;
-        V = V_backup;
+        // P = P_backup;
+        // V = V_backup;
         to_greibach(greibach);
 
     }
