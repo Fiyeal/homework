@@ -275,11 +275,32 @@ void to_chomsky(std::fstream &fout)
     return;
 }
 
+
+// 消除左递归产生式
 void remove_left_recursion()
 {
-    for (auto &item : P) {
-        ;
+    while (true) {
+        auto it = P.begin();
+        decltype(V) cycle;
+        bool breakFlag = false;
+        while (it != P.end()) {
+            auto &item = *it;
+            for (const auto &s : item.second) {
+                char ch = item.first;
+                while (T.count(s[0]) != 1) {
+                    if (cycle.empty())
+                        cycle.insert(ch);
+                    cycle.insert()
+                }
+            }
+            if (breakFlag)
+                break;
+            ++it;
+        }
+        if (it == P.end())
+            break;
     }
+    return;
 }
 
 void to_greibach(std::fstream &fout)

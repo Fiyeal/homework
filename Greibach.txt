@@ -4,7 +4,7 @@ C->GC|GF
 E->a
 F->b
 G->c
-H->GBS
+H->GB
 I->AJ
 J->BC
 K->AC
