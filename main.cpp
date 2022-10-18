@@ -432,7 +432,10 @@ void to_greibach(std::fstream &fout)
     print_map(P);
     std::cout << std::endl;
     
+    // 消除左递归
     remove_left_recursion();
+
+    // print_map(P);
 
     return;
 }
@@ -464,11 +467,12 @@ int main() {
             P.insert({line[0], std::vector<std::string>()});
             int preind = 3, ind = 3;
             // std::cout << line << std::endl;
-            while ((ind = line.find_first_of("|", ind, line.size() - ind)) != std::string::npos) {
+            while ((ind = line.find_first_of("|", ind)) != std::string::npos) {
                 P[line[0]].push_back(std::string(line, preind, ind - preind));
                 preind = ++ind;
             }
             P[line[0]].push_back(std::string(line, preind, line.size() - preind));
+            std::cout << std::string(line, preind, line.size() - preind) << std::endl;
             // for (auto val : P[line[0]]) {
             //     std::cout << val << " ";
             // }
