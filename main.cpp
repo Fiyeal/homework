@@ -11,11 +11,13 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <stack>
 
 const char *grammarPath = "./grammar.txt";
 const char *chomskyPath = "./Chomsky.txt";
 const char *greibachPath = "./Greibach.txt";
 const char *npdaPath = "./NPDA.txt";
+const char *testPath = "./test.txt";
 
 // 上下文无关文法
 std::set<char> V, T; // 分别为非终结符和终结符
@@ -68,7 +70,7 @@ void print_map(std::map<char, std::vector<std::string>> a)
     }
 }
 
-void print_map(std::map<state, std::vector<behaviar>> F)
+void print_map(const std::map<state, std::vector<behaviar>> &F)
 {
     for (const auto &item : F) {
         std::cout << "f(" << item.first.q << ", " << item.first.ch << ", " << item.first.top << ") = {";
@@ -564,6 +566,20 @@ void to_greibach(std::fstream &fout)
 }
 
 
+void to_file(std::fstream &fout, const std::map<state, std::vector<behaviar>> &F)
+{
+    for (const auto &item : F) {
+        fout << "f(" << item.first.q << ", " << item.first.ch << ", " << item.first.top << ") = {";
+        for (int i = 0; i < item.second.size(); ++i) {
+            auto b = item.second[i];
+            fout << "(" << b.q << ", " << b.in << ")";
+            if (i != item.second.size() - 1)
+                fout << ", ";
+        }
+        fout << "}" << std::endl;
+    }
+}
+
 // 从Greibach范式构造NPDA
 void to_NPDA(std::fstream &fout) {
     for (const auto &item : P) {
@@ -572,8 +588,48 @@ void to_NPDA(std::fstream &fout) {
             F[{"q1", s[0], item.first}].push_back({"q1", tmp});
         }
     }
-    print_map(F);
+
+    to_file(fout, F);
+    // print_map(F);
     return;
+}
+
+
+bool step(const std::string &goal, int pos, std::string q, std::stack<char> stack)
+{
+    std::cout << q << " " << goal[pos] << " " << stack.top() << std::endl;
+    if (q == "q2")
+        return true;
+    state tmp = {q, goal[pos], stack.top()};
+    if (F.count(tmp) == 0 || pos >= goal.size())
+        return false;
+    else {
+        stack.pop();
+        auto tmpStack = stack;
+        for (const auto &b : F[tmp]) {
+            q = b.q;
+            for (int i = b.in.size() - 1; i >= 0; --i) {
+                if (b.in[i] != '#')
+                    stack.push(b.in[i]);
+            }
+            if (step(goal, pos + 1, q, stack)) {
+                return true;
+            }
+            stack = tmpStack;
+        }
+        return false;
+    }
+}
+// 判断是否符合语法
+bool is_illigal(std::fstream &fin)
+{
+    std::stack<char> stack;
+    stack.push('z');
+    std::string q = "q0";
+    std::string goal;
+    fin >> goal;
+    int pos = 0;
+    return step(goal, pos, q, stack);
 }
 
 
@@ -582,6 +638,7 @@ int main() {
     std::fstream chomsky(chomskyPath, std::ios_base::out | std::ios_base::trunc);
     std::fstream greibach(greibachPath, std::ios_base::out | std::ios_base::trunc);
     std::fstream npda(npdaPath, std::ios_base::out | std::ios_base::trunc);
+    std::fstream test(testPath, std::ios_base::in);
 
 
     if (!grammar.is_open() || !chomsky.is_open() || !greibach.is_open() || !npda.is_open())
@@ -590,7 +647,6 @@ int main() {
         // 从文件读取文法，解析存储
         std::string line;
         while (grammar >> line) {
-
             for (int i = 0; i < line.size(); ++i) { // 构造非终结符集V和终结符集T
                 if (i != 1 && i != 2 && line[i] != '|') {
                     if (std::isupper(line[i]))
@@ -624,6 +680,11 @@ int main() {
         to_greibach(greibach);
 
         to_NPDA(npda);
+
+        if (is_illigal(test))
+            std::cout << "true" << std::endl;
+        else 
+            std::cout << "false" << std::endl;
 
     }
     return 0;
