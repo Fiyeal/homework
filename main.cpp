@@ -1,3 +1,4 @@
+#include <ios>
 #include <iostream>
 #include <cassert>
 #include <fstream>
@@ -237,6 +238,23 @@ void construct_GC(char &candidate)
 
 
 
+// 输出到文件
+void to_file(std::fstream &fout)
+{
+    for (const auto &item : P) {
+        fout << item.first << "->";
+        for (int i = 0; i < item.second.size(); ++i) {
+            fout << item.second[i];
+            if (i != item.second.size() - 1)
+                fout << "|";
+        }
+        fout << std::endl;
+    }
+    return;
+}
+
+
+
 /**
  *  @brief  translate the common grammar to chomsky normal forms.
  *  @param fout the file to save chomsky normal forms
@@ -264,15 +282,8 @@ void to_chomsky(std::fstream &fout)
     construct_GC(candidate);
 
     // 输出到文件
-    for (const auto &item : P) {
-        fout << item.first << "->";
-        for (int i = 0; i < item.second.size(); ++i) {
-            fout << item.second[i];
-            if (i != item.second.size() - 1)
-                fout << "|";
-        }
-        fout << std::endl;
-    }
+    to_file(fout);
+
     return;
 }
 
@@ -303,7 +314,7 @@ void search(std::vector<char> &res, char ch, bool &breakFlag)
 
 
 // 消除左递归产生式
-void remove_left_recursion()
+void remove_left_recursion(char newV)
 {
     char start = START;
     std::set<char> checked;
@@ -361,7 +372,6 @@ void remove_left_recursion()
                 b.push_back(s);
         }
         std::vector<std::string> tmp(b);
-        char newV = 'A';
         while (V.count(newV) == 1) {
             ++newV;
             assert(newV <= 'Z');
@@ -434,7 +444,38 @@ void make_T_begin(char ch, std::vector<std::string> &svec, std::set<char> &check
     return;
 }
 
+// 构造目标范式
+void construct_Greibach(char newV)
+{
+    std::map<char, char> rextraP;
+    for (auto &item : P) {
+        for (auto &s : item.second) {
+            for (int i = 0; i < s.size(); ++i) {
+                if (i != 0 && V.count(s[i]) == 0) {
+                    if (rextraP.count(s[i]) == 0) {
+                        while (V.count(newV) == 1) {
+                            ++newV;
+                            assert(newV <= 'Z');
+                        }
+                        rextraP.insert({s[i], newV});
+                        V.insert(newV);
+                        s[i] = newV;
+                    }
+                    else {
+                        s[i] = rextraP[s[i]];
+                    }
+                }
+            }
+        }
+    }
+    // 更新P
+    for (const auto &item : rextraP) {
+        P.insert({item.second, {std::string(1, item.first)}});
+    }
+    return;
+}
 
+// 上下文无关文法转换成Greibach范式
 void to_greibach(std::fstream &fout)
 {
     // 消除#产生式
@@ -449,12 +490,10 @@ void to_greibach(std::fstream &fout)
 
     // 消除无用符号
     remove_useless_symbols();
-
-    // print_map(P);
-    // std::cout << std::endl;
     
     // 消除左递归
-    remove_left_recursion();
+    char newV = 'A';
+    remove_left_recursion(newV);
 
     // 消除产生式右部开头为非终结符的情况
     checked.clear();
@@ -475,8 +514,11 @@ void to_greibach(std::fstream &fout)
         }
     }
 
-    
+    // 构造目标范式
+    construct_Greibach(newV);
 
+    // 写入文件
+    to_file(fout);
 
     return;
 }
@@ -484,8 +526,8 @@ void to_greibach(std::fstream &fout)
 
 int main() {
     std::fstream grammar(grammarPath, std::ios_base::in);
-    std::fstream chomsky(chomskyPath, std::ios_base::trunc | std::ios_base::in | std::ios_base::out);
-    std::fstream greibach(greibachPath, std::ios_base::in);
+    std::fstream chomsky(chomskyPath, std::ios_base::out | std::ios_base::trunc);
+    std::fstream greibach(greibachPath, std::ios_base::out | std::ios_base::trunc);
 
 
     if (!grammar.is_open() || !chomsky.is_open() || !greibach.is_open())
@@ -513,7 +555,6 @@ int main() {
                 preind = ++ind;
             }
             P[line[0]].push_back(std::string(line, preind, line.size() - preind));
-            std::cout << std::string(line, preind, line.size() - preind) << std::endl;
             // for (auto val : P[line[0]]) {
             //     std::cout << val << " ";
             // }

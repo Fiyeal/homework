@@ -1,11 +1,7 @@
-A->EA|a
-B->FH|FG|GC|GF
-C->GC|GF
+A->aA|a|bDB|cCDE|cDE
+B->bDB|cCDE|cDE
+C->cC|c
+D->c
 E->a
 F->b
-G->c
-H->GB
-I->AJ
-J->BC
-K->AC
-S->EI|EC|EJ|EK|a
+S->aAFBC|aFBC
