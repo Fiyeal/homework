@@ -277,7 +277,7 @@ void to_chomsky(std::fstream &fout)
 }
 
 
-
+// 搜索以ch开始的产生式是否存在环
 void search(std::vector<char> &res, char ch, bool &breakFlag)
 {
     for (const auto &s : P[ch]) {
@@ -299,8 +299,6 @@ void search(std::vector<char> &res, char ch, bool &breakFlag)
     res.pop_back();
     return;
 }
-
-
 
 
 
@@ -410,9 +408,32 @@ void remove_left_recursion()
             P[item.first] = item.second;
         }
     }
-    print_map(P);
+    // print_map(P);
     return;
 }
+
+
+// 消除右部开头V
+void make_T_begin(char ch, std::vector<std::string> &svec, std::set<char> &checked)
+{
+    std::vector<std::string> tmp;
+    for (const auto &s : svec) {
+        if (V.count(s[0]) == 1) {
+            if (checked.count(s[0]) == 0) {
+                make_T_begin(s[0], P[s[0]], checked);
+            }
+            for (const auto &ss : P[s[0]]) {
+                tmp.push_back(ss + std::string(s.begin() + 1, s.end()));
+            }
+        }
+        else
+            tmp.push_back(s);
+    }
+    svec = tmp;
+    checked.insert(ch);
+    return;
+}
+
 
 void to_greibach(std::fstream &fout)
 {
@@ -429,13 +450,33 @@ void to_greibach(std::fstream &fout)
     // 消除无用符号
     remove_useless_symbols();
 
-    print_map(P);
-    std::cout << std::endl;
+    // print_map(P);
+    // std::cout << std::endl;
     
     // 消除左递归
     remove_left_recursion();
 
-    // print_map(P);
+    // 消除产生式右部开头为非终结符的情况
+    checked.clear();
+    for (const auto &item : P) {
+        bool flag = true;
+        for (const auto &s : item.second) {
+            if (V.count(s[0]) == 1) {
+                flag = false;
+                break;
+            }
+        }
+        if (flag)
+            checked.insert(item.first);
+    }
+    for (auto &item : P) {
+        if (checked.count(item.first) == 0) {
+            make_T_begin(item.first, item.second, checked);
+        }
+    }
+
+    
+
 
     return;
 }
