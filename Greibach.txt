@@ -1,7 +1,4 @@
-A->aA|a|bDB|cCDE|cDE
-B->bDB|cCDE|cDE
-C->cC|c
-D->c
-E->a
-F->b
-S->aAFBC|aFBC
+A->aABC|bB|a
+B->b
+C->c
+S->aA

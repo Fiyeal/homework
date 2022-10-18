@@ -12,6 +12,42 @@
 #include <cmath>
 #include <iterator>
 
+const char *grammarPath = "./grammar.txt";
+const char *chomskyPath = "./Chomsky.txt";
+const char *greibachPath = "./Greibach.txt";
+const char *npdaPath = "./NPDA.txt";
+
+// 上下文无关文法
+std::set<char> V, T; // 分别为非终结符和终结符
+std::map<char, std::vector<std::string>> P; // 产生式
+char START = 'S'; // 开始符号
+
+// NPDA
+struct state {
+    std::string q;
+    char ch;
+    char top;
+
+    bool operator<(const state &b) const
+    {
+        if (this->top != b.top)
+            return this->top < b.top;
+        else if (this->ch != b.ch)
+            return this->ch < b.ch;
+        else
+            return this->q < b.q;
+    }
+};
+struct behaviar {
+    std::string q;
+    std::string in;
+};
+std::map<state, std::vector<behaviar>> F{
+    {{"q0", '#', 'z'}, {{"q1", "Sz"}}}, 
+    {{"q1", '#', 'z'}, {{"q2", "z"}}}
+};
+
+
 // DEBUG FUNCTION
 template<class T>
 void print(T a) 
@@ -32,17 +68,21 @@ void print_map(std::map<char, std::vector<std::string>> a)
     }
 }
 
+void print_map(std::map<state, std::vector<behaviar>> F)
+{
+    for (const auto &item : F) {
+        std::cout << "f(" << item.first.q << ", " << item.first.ch << ", " << item.first.top << ") = {";
+        for (int i = 0; i < item.second.size(); ++i) {
+            auto b = item.second[i];
+            std::cout << "(" << b.q << ", " << b.in << ")";
+            if (i != item.second.size() - 1)
+                std::cout << ", ";
+        }
+        std::cout << "}" << std::endl;
+    }
+}
+
 ///////////////////////////////////////////
-
-
-
-const char *grammarPath = "./grammar.txt";
-const char *chomskyPath = "./Chomsky.txt";
-const char *greibachPath = "./Greibach.txt";
-
-std::set<char> V, T; // 分别为非终结符和终结符
-std::map<char, std::vector<std::string>> P; // 产生式
-char START = 'S'; // 开始符号
 
 
 // 消除无用符号, 从S遍历非终结符，遍历到的存入checked，最终与V做差集，去除差集里的产生式
@@ -524,13 +564,27 @@ void to_greibach(std::fstream &fout)
 }
 
 
+// 从Greibach范式构造NPDA
+void to_NPDA(std::fstream &fout) {
+    for (const auto &item : P) {
+        for (const auto &s : item.second) {
+            auto tmp = (s.size() == 1 ? std::string("#") : std::string(s.begin() + 1, s.end()));
+            F[{"q1", s[0], item.first}].push_back({"q1", tmp});
+        }
+    }
+    print_map(F);
+    return;
+}
+
+
 int main() {
     std::fstream grammar(grammarPath, std::ios_base::in);
     std::fstream chomsky(chomskyPath, std::ios_base::out | std::ios_base::trunc);
     std::fstream greibach(greibachPath, std::ios_base::out | std::ios_base::trunc);
+    std::fstream npda(npdaPath, std::ios_base::out | std::ios_base::trunc);
 
 
-    if (!grammar.is_open() || !chomsky.is_open() || !greibach.is_open())
+    if (!grammar.is_open() || !chomsky.is_open() || !greibach.is_open() || !npda.is_open())
         std::cout << "Error when it trys to open files!!!" << std::endl;
     else {
         // 从文件读取文法，解析存储
@@ -561,13 +615,15 @@ int main() {
             // std::cout << std::endl << std::endl;
         }
 
-        // auto P_backup = P;
-        // auto V_backup = V;
-        // to_chomsky(chomsky);
+        auto P_backup = P;
+        auto V_backup = V;
+        to_chomsky(chomsky);
 
-        // P = P_backup;
-        // V = V_backup;
+        P = P_backup;
+        V = V_backup;
         to_greibach(greibach);
+
+        to_NPDA(npda);
 
     }
     return 0;
