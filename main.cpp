@@ -44,7 +44,7 @@ struct behavior {
     std::string q;
     std::string in;
 };
-std::map<state, std::vector<behavior>> F{
+std::map<state, std::vector<behavior>> F{ //转移规则
     {{"q0", '#', 'z'}, {{"q1", "Sz"}}}, 
     {{"q1", '#', 'z'}, {{"q2", "z"}}}
 };
@@ -90,6 +90,7 @@ void print_map(const std::map<state, std::vector<behavior>> &F)
 // 消除无用符号, 从S遍历非终结符，遍历到的存入checked，最终与V做差集，去除差集里的产生式
 void remove_useless_symbols()
 {
+    // 消除从S不可达的无用符号
     std::set<char> checked, unchecked{START};
     while (!unchecked.empty()) {
         char check = 0;
@@ -116,6 +117,55 @@ void remove_useless_symbols()
     for (auto ch : tmp) {
         auto it = P.find(ch);
         P.erase(it);
+        auto itV = V.find(ch);
+        V.erase(itV);
+    }
+
+    // 消除不产生终结符的无用符号
+    decltype(P) uselessP;
+    for (const auto &item : P) {
+        if (item.first == START)
+            continue;
+        bool flag = false;
+        for (const auto s : item.second) {
+            for (auto ch : s) {
+                if (T.count(ch) == 1)
+                    flag = true;
+            }
+            if (flag)
+                break;
+        }
+        if (flag)
+            break;
+        uselessP.insert(item);
+    }
+    for (const auto &item : uselessP) {
+        auto it = P.find(item.first);
+        P.erase(it);
+    }
+    decltype(P) preP;
+    while (preP != P) { // 直到P不再发生变化终止循环
+        preP = P;
+        for (auto &item : P) {
+            std::vector<std::string> tmp;
+            for (const auto s : item.second) {
+                auto flag = false;
+                for (auto it = s.begin(); it != s.end(); ++it) {
+                    if (uselessP.count(*it) == 1) {
+                        for (const auto &ss : uselessP[*it]) {
+                            auto tmps = s;
+                            tmp.push_back(tmps.replace(it, it + 1, ss));
+                        }
+                        flag = true;
+                        break; // 一个字符一个字符的替换
+                    }
+                }
+                if (flag) // 替换了，所以原式不push
+                    continue;
+                tmp.push_back(s);
+            }
+            item.second = tmp;
+        }
     }
     return;
 }
@@ -354,7 +404,6 @@ void search(std::vector<char> &res, char ch, bool &breakFlag)
 }
 
 
-
 // 消除左递归产生式
 void remove_left_recursion(char newV)
 {
@@ -520,25 +569,32 @@ void construct_Greibach(char newV)
 // 上下文无关文法转换成Greibach范式
 void to_greibach(std::fstream &fout)
 {
-    // 消除#产生式
-    remove_empty_production();
+    char newV = 'A'; // 用以产生没用过的非终结符
 
-    // 消除单一产生式
-    std::set<char> checked;
-    for (auto &item : P) {
-        if (checked.count(item.first) == 0)
-            remove_single_production(item.second, checked, item.first);
+    decltype(P) preP;
+    while (preP != P) { // 直到P不再变化
+        preP = P;
+
+        // 消除#产生式
+        remove_empty_production();
+
+        // 消除单一产生式
+        std::set<char> checked;
+        for (auto &item : P) {
+            if (checked.count(item.first) == 0)
+                remove_single_production(item.second, checked, item.first);
+        }
+
+        // 消除无用符号
+        remove_useless_symbols();
+
+        // 消除左递归
+        remove_left_recursion(newV);
     }
-
-    // 消除无用符号
-    remove_useless_symbols();
     
-    // 消除左递归
-    char newV = 'A';
-    remove_left_recursion(newV);
 
     // 消除产生式右部开头为非终结符的情况
-    checked.clear();
+    std::set<char> checked;
     for (const auto &item : P) {
         bool flag = true;
         for (const auto &s : item.second) {
@@ -621,7 +677,7 @@ bool step(const std::string &goal, int pos, std::string q, std::stack<char> stac
     }
 }
 // 判断是否符合语法
-bool is_illigal(std::fstream &fin)
+bool is_legal(std::fstream &fin)
 {
     std::stack<char> stack;
     stack.push('z');
@@ -681,7 +737,7 @@ int main() {
 
         to_NPDA(npda);
 
-        if (is_illigal(test))
+        if (is_legal(test))
             std::cout << "Accepted" << std::endl;
         else 
             std::cout << "Unaccepted" << std::endl;

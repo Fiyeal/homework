@@ -5,4 +5,4 @@ D->a
 E->b
 F->AG
 G->BC
-S->DA
+S->DA|AB
