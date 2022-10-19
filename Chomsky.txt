@@ -1,4 +1,4 @@
-A->DF|EB|a
+A->a|DF|EB
 B->b
 C->c
 D->a

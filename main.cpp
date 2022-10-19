@@ -40,11 +40,11 @@ struct state {
             return this->q < b.q;
     }
 };
-struct behaviar {
+struct behavior {
     std::string q;
     std::string in;
 };
-std::map<state, std::vector<behaviar>> F{
+std::map<state, std::vector<behavior>> F{
     {{"q0", '#', 'z'}, {{"q1", "Sz"}}}, 
     {{"q1", '#', 'z'}, {{"q2", "z"}}}
 };
@@ -70,7 +70,7 @@ void print_map(std::map<char, std::vector<std::string>> a)
     }
 }
 
-void print_map(const std::map<state, std::vector<behaviar>> &F)
+void print_map(const std::map<state, std::vector<behavior>> &F)
 {
     for (const auto &item : F) {
         std::cout << "f(" << item.first.q << ", " << item.first.ch << ", " << item.first.top << ") = {";
@@ -429,7 +429,7 @@ void remove_left_recursion(char newV)
         V.insert(newV);
         tmpP[newV] = tmp;
 
-        print_map(tmpP);
+        // print_map(tmpP);
 
         // 回代其他产生式，消除间接左递归
         char ch = firstItem.first;
@@ -566,7 +566,7 @@ void to_greibach(std::fstream &fout)
 }
 
 
-void to_file(std::fstream &fout, const std::map<state, std::vector<behaviar>> &F)
+void to_file(std::fstream &fout, const std::map<state, std::vector<behavior>> &F)
 {
     for (const auto &item : F) {
         fout << "f(" << item.first.q << ", " << item.first.ch << ", " << item.first.top << ") = {";
@@ -597,7 +597,7 @@ void to_NPDA(std::fstream &fout) {
 
 bool step(const std::string &goal, int pos, std::string q, std::stack<char> stack)
 {
-    std::cout << q << " " << goal[pos] << " " << stack.top() << std::endl;
+    // std::cout << q << " " << goal[pos] << " " << stack.top() << std::endl;
     if (q == "q2")
         return true;
     state tmp = {q, goal[pos], stack.top()};
@@ -682,9 +682,9 @@ int main() {
         to_NPDA(npda);
 
         if (is_illigal(test))
-            std::cout << "true" << std::endl;
+            std::cout << "Accepted" << std::endl;
         else 
-            std::cout << "false" << std::endl;
+            std::cout << "Unaccepted" << std::endl;
 
     }
     return 0;
