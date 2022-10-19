@@ -1,4 +1,6 @@
 A->a|aABC|bB
 B->b
 C->c
-S->aA|aB|aABCB|bBB
+D->aB|aABCB|bBB
+E->a
+S->aA|aBE|aABCBE|bBBE

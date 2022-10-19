@@ -142,6 +142,8 @@ void remove_useless_symbols()
     for (const auto &item : uselessP) {
         auto it = P.find(item.first);
         P.erase(it);
+        auto itV = V.find(item.first);
+        V.erase(itV);
     }
     decltype(P) preP;
     while (preP != P) { // 直到P不再发生变化终止循环
@@ -726,8 +728,8 @@ int main() {
             // }
             // std::cout << std::endl << std::endl;
         }
-
-        auto P_backup = P;
+ 
+         auto P_backup = P;
         auto V_backup = V;
         to_chomsky(chomsky);
 

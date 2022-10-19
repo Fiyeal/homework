@@ -1,8 +1,9 @@
-A->a|DF|EB
+A->a|EG|FB
 B->b
 C->c
-D->a
-E->b
-F->AG
-G->BC
-S->DA|AB
+D->AB
+E->a
+F->b
+G->AH
+H->BC
+S->EA|DE
